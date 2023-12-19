@@ -41,6 +41,7 @@ class FollowNewestFile:
 
     def __init__(self, paths):
         self.paths = paths
+        return
 
     def expandGlob(self, path):
         paths = []
@@ -77,6 +78,7 @@ class FollowNewestFile:
             else:
                 self.seek = 0
         self.firstRun = False
+        return
 
     def runOnce(self):
         lastPath = self.path
@@ -86,11 +88,13 @@ class FollowNewestFile:
                 print("Now following: {} from {}".format(self.path, self.seek), file=sys.stderr)
                 self.followFile = FollowFile(self.path, self.seek)
             self.followFile.getRest()
+        return
 
     def run(self):
         while True:
             self.runOnce()
             time.sleep(0.5)
+        return
 
 
 def argParse():
