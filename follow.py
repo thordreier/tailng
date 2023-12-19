@@ -10,23 +10,26 @@ import time
 
 class FollowFile:
 
-    def __init__(self, filePath, fileSeek=-1):
-        self.filePath = filePath
-        if fileSeek == -1:
-            fileSeek = self.getFileSize()
-        self.fileSeek = fileSeek
+    path = ''
+    seek = -1
+
+    def __init__(self, path, seek=-1):
+        self.path = path
+        if seek == -1:
+            seek = self.getFileSize()
+        self.seek = seek
         return
 
     def getFileSize(self):
-        return os.path.getsize(self.filePath)
+        return os.path.getsize(self.path)
 
     def getRest(self):
-        if self.fileSeek == self.getFileSize():
+        if self.seek == self.getFileSize():
             return
-        file = open(self.filePath)
-        file.seek(self.fileSeek)
+        file = open(self.path)
+        file.seek(self.seek)
         print(file.read(), end='')
-        self.fileSeek = file.tell()
+        self.seek = file.tell()
         file.close()
         return
 
