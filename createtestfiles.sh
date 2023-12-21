@@ -1,6 +1,7 @@
 #!/bin/bash
 
-rm -v testfile?
+shopt -s nullglob
+rm -fv testfile?
 sleep 5
 
 while true
