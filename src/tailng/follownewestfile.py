@@ -18,6 +18,10 @@ class FollowNewestFile:
         self.follow_file = None
         self.firstrun = True
 
+    def _stderr(self, msg):
+        if not self.quiet:
+            sys.stderr.write(msg + "\n")
+
     @staticmethod
     def _expand_glob(path):
         expanded_paths = []
@@ -40,13 +44,20 @@ class FollowNewestFile:
         mtime = -1
         prevstats = self.stats
         self.stats = {}
+        self.path = ''
         for path in self._get_paths(self.paths):
             stat = os.stat(path)
             self.stats[path] = stat
             if stat.st_mtime > mtime:
                 mtime = stat.st_mtime
                 self.path = path
+        if not self.path:
+            if self.firstrun or prevstats:
+                self._stderr("No files found")
+            self.firstrun = False
+            return
         if self.firstrun:
+
             self.pos = self.stats.get(self.path).st_size
         else:
             prevstat = prevstats.get(self.path)
@@ -55,6 +66,7 @@ class FollowNewestFile:
             else:
                 self.pos = 0
         self.firstrun = False
+        return
 
     def get(self):
         prevpath = self.path
