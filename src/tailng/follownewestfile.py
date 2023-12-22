@@ -3,9 +3,11 @@
 import glob
 import os
 import sys
+from tailng import __version__
 from tailng.followfile import FollowFile
 
 class FollowNewestFile:
+    """Like "tail -F", but it always follow the newest file"""
     def __init__(self, paths, sleep=0.5, quiet=False):
         self.paths = paths
         self.sleep = sleep
@@ -51,7 +53,7 @@ class FollowNewestFile:
             if prevstat:
                 self.pos = prevstat.st_size
             else:
-                self.post = 0
+                self.pos = 0
         self.firstrun = False
 
     def get(self):
@@ -59,32 +61,45 @@ class FollowNewestFile:
         self._find_newest()
         if self.path:
             if self.path != prevpath:
-                if not self.quiet:
-                    sys.stderr.write(f"Now following: {self.path} from position {self.pos}\n")
-                self.follow_file = FollowFile(self.path, self.pos)
+                self.follow_file = FollowFile(path=self.path, pos=self.pos, sleep=self.sleep, quiet=self.quiet)
             return self.follow_file.get()
         return ''
 
-    def write(self):
-        sys.stdout.write(self.get())
+    def print(self):
+        print(self.get(), end='', flush=True)
 
     def follow(self):
         import time
         while True:
-            self.write()
+            self.print()
             time.sleep(self.sleep)
 
 
-def argParse():
+def arg_parse():
     import argparse
-    argParse = argparse.ArgumentParser(description='Like "tail -F", but it always follow the newest file', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    argParse.add_argument(dest='paths', metavar='PATH', nargs='*', default=['*'], help='Path to follow. Accept file(s), directory or glob')
-    args = argParse.parse_args()
+    parser = argparse.ArgumentParser(
+        description = 'Like "tail -F", but it always follow the newest file',
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        '--version',
+        '-V',
+        action = 'version',
+        version = __version__,
+    )
+    parser.add_argument(
+        dest = 'paths',
+        metavar = 'PATH',
+        nargs = '*',
+        default = ['*'],
+        help = 'Path to follow. Accept file(s), directory or glob',
+    )
+    args = parser.parse_args()
     return args
 
 def main():
     try:
-        args = argParse()
+        args = arg_parse()
         follow_newest_file = FollowNewestFile(args.paths)
         follow_newest_file.follow()
         return 0

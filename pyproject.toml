@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tailng"
-version = "0.0.1"
 authors = [
   { name="Thor Dreier-Hansen", email="43479811+thordreier@users.noreply.github.com" },
 ]
@@ -16,6 +15,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dynamic = [
+  "version"
+]
 
 [project.scripts]
 tailng = "tailng.follownewestfile:main"
@@ -23,3 +25,6 @@ tailng = "tailng.follownewestfile:main"
 [project.urls]
 Homepage = "https://github.com/thordreier/tailng"
 Issues = "https://github.com/thordreier/tailng/issues"
+
+[tool.hatch.version]
+path = "src/tailng/__init__.py"
