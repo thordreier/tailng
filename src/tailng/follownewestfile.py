@@ -8,12 +8,17 @@ from tailng.followfile import FollowFile
 
 class FollowNewestFile:
     """Like "tail -F", but it always follow the newest file"""
-    def __init__(self, paths, sleep=0.5, quiet=False):
+    # pos=None - follow from end
+    # pos=0 - follow from beginning
+    # pos=<negateive> - count bytes backward from end
+    # pos=<positive> - count bytes from beginning
+    def __init__(self, paths, pos=None, sleep=0.5, quiet=False):
         self.paths = paths
+        self.start_pos = pos
         self.sleep = sleep
         self.quiet = quiet
         self.path = ''
-        self.pos = -1
+        self.pos = None
         self.stats = {}
         self.follow_file = None
         self.firstrun = True
@@ -40,6 +45,19 @@ class FollowNewestFile:
         uniq_paths = list(set(expanded_paths))
         return uniq_paths
 
+    def _get_pos(self, size, pos):
+        if pos is None:
+            return size
+        elif pos < 0 and -pos > size:
+            self._stderr(f"Can't seek {pos}, starting from beginning of file")
+            return 0
+        elif pos < 0:
+            return size + pos
+        elif pos > size:
+            self._stderr(f"Can't seek {pos}, starting from end of file")
+            return size
+        return pos
+
     def _find_newest(self):
         mtime = -1
         prevstats = self.stats
@@ -57,8 +75,7 @@ class FollowNewestFile:
             self.firstrun = False
             return
         if self.firstrun:
-
-            self.pos = self.stats.get(self.path).st_size
+            self.pos = self._get_pos(self.stats.get(self.path).st_size, self.start_pos)
         else:
             prevstat = prevstats.get(self.path)
             if prevstat:
@@ -94,8 +111,8 @@ def arg_parse():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--version',
         '-V',
+        '--version',
         action = 'version',
         version = __version__,
     )
@@ -106,13 +123,33 @@ def arg_parse():
         default = ['*'],
         help = 'Path to follow. Accept file(s), directory or glob',
     )
+    pos_group = parser.add_mutually_exclusive_group()
+    pos_group.add_argument(
+        '-w',
+        '--whole-file',
+        dest = 'whole_file',
+        action = 'store_true',
+        help = 'Show whole file (only first file opened)',
+    )
+    pos_group.add_argument(
+        '-c',
+        '--bytes',
+        dest = 'pos',
+        metavar = 'NUM',
+        type = int,
+        help = 'Start at byte (accept negative numbers too) (only first file opened)',
+    )
     args = parser.parse_args()
     return args
 
 def main():
     try:
         args = arg_parse()
-        follow_newest_file = FollowNewestFile(args.paths)
+        if args.whole_file:
+            pos = 0
+        else:
+            pos = args.pos
+        follow_newest_file = FollowNewestFile(paths=args.paths, pos=pos)
         follow_newest_file.follow()
         return 0
     except KeyboardInterrupt:

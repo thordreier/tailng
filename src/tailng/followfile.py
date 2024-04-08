@@ -6,17 +6,29 @@ from tailng import __version__
 
 class FollowFile:
     """Like "tail -F" """
-    def __init__(self, path, pos=-1, sleep=0.5, quiet=False):
+    # pos=None - follow from end
+    # pos=0 - follow from beginning
+    # pos=<negateive> - count bytes backward from end
+    # pos=<positive> - count bytes from beginning
+    def __init__(self, path, pos=None, sleep=0.5, quiet=False):
         self.path = path
         self.sleep = sleep
         self.quiet = quiet
         self.pos = pos
         size = self._getsize()
-        if size < 0:
-            self.pos = -1
+        if size is None:
+            self.pos = None
             self._stderr(f"File {self.path} does not exist")
         else:
-            if self.pos == -1:
+            if self.pos is None:
+                self.pos = size
+            elif self.pos < 0 and -self.pos > size:
+                self._stderr(f"Can't seek {self.pos}, starting from beginning of file")
+                self.pos = 0
+            elif self.pos < 0:
+                self.pos = size + self.pos
+            elif self.pos > size:
+                self._stderr(f"Can't seek {self.pos}, starting from end of file")
                 self.pos = size
             self._stderrpos()
 
@@ -31,18 +43,18 @@ class FollowFile:
         try:
             return os.path.getsize(self.path)
         except FileNotFoundError:
-            return -1
+            return None
 
     def get(self):
         size = self._getsize()
-        if size < 0 and self.pos < 0:
+        if size is None and self.pos is None:
             # File still missing
             return ''
-        if size < 0 and self.pos >= 0:
-            self.pos = -1
+        if size is None and self.pos >= 0:
+            self.pos = None
             self._stderr(f"File {self.path} disappeared")
             return ''
-        if size >= 0 and self.pos < 0:
+        if size >= 0 and self.pos is None:
             self.pos = 0
             self._stderr(f"File {self.path} created")
             self._stderrpos()
@@ -61,7 +73,7 @@ class FollowFile:
 
     def print(self):
         print(self.get(), end='', flush=True)
-    
+
     def follow(self):
         import time
         while True:
@@ -76,8 +88,8 @@ def arg_parse():
         formatter_class = argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--version',
         '-V',
+        '--version',
         action = 'version',
         version = __version__,
     )
@@ -86,13 +98,33 @@ def arg_parse():
         metavar = 'PATH',
         help = 'Path to follow.',
     )
+    pos_group = parser.add_mutually_exclusive_group()
+    pos_group.add_argument(
+        '-w',
+        '--whole-file',
+        dest = 'whole_file',
+        action = 'store_true',
+        help = 'Show whole file',
+    )
+    pos_group.add_argument(
+        '-c',
+        '--bytes',
+        dest = 'pos',
+        metavar = 'NUM',
+        type = int,
+        help = 'Start at byte (accept negative numbers too)',
+    )
     args = parser.parse_args()
     return args
 
 def main():
     try:
         args = arg_parse()
-        follow_file = FollowFile(args.path)
+        if args.whole_file:
+            pos = 0
+        else:
+            pos = args.pos
+        follow_file = FollowFile(path=args.path, pos=pos)
         follow_file.follow()
         return 0
     except KeyboardInterrupt:
