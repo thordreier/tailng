@@ -34,7 +34,7 @@ class FollowNewestFile:
             if os.path.isfile(p):
                 expanded_paths += [p]
             elif p == path and os.path.isdir(p):
-                expanded_paths += FollowNewestFile.expandGlob(p + '/*')
+                expanded_paths += FollowNewestFile._expand_glob(p + '/*')
         return expanded_paths
 
     @staticmethod
